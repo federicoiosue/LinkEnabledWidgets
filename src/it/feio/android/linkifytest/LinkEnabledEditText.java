@@ -10,9 +10,10 @@ import android.text.SpannableString;
 import android.text.style.ClickableSpan;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.EditText;
 
-public class LinkEnabledEditText extends EditText {
+public class LinkEnabledEditText extends EditText implements OnClickListener {
 	// The String Containing the Text that we have to gather links from private
 	// SpannableString linkableText;
 	// Populating and gathering all the links that are present in the Text
@@ -20,7 +21,7 @@ public class LinkEnabledEditText extends EditText {
 
 	// A Listener Class for generally sending the Clicks to the one which
 	// requires it
-	TextLinkClickListener mListener;
+	TextLinkClickListener mTextLinkClickListener;
 
 	// Pattern for gathering @usernames from the Text
 	Pattern screenNamePattern = Pattern.compile("(@[a-zA-Z0-9_]+)");
@@ -40,10 +41,11 @@ public class LinkEnabledEditText extends EditText {
 	public LinkEnabledEditText(Context context, AttributeSet attrs) {
 		super(context, attrs);
 		listOfLinks = new ArrayList<Hyperlink>();
-
+		setOnClickListener(this);
 	}
 
-	public void gatherLinksForText(String text) {
+	public void gatherLinksForText() {
+		String text = getText().toString();
 		linkableText = new SpannableString(text);
 		// gatherLinks basically collects the Links depending upon the Pattern
 		// that we supply
@@ -72,7 +74,20 @@ public class LinkEnabledEditText extends EditText {
 	// sets the Listener for later click propagation purpose
 
 	public void setOnTextLinkClickListener(TextLinkClickListener newListener) {
-		mListener = newListener;
+		mTextLinkClickListener = newListener;
+	}
+
+	
+	@Override
+	public void onClick(View v) {
+		if (mTextLinkClickListener != null) {
+			int cursorPosition = ((LinkEnabledEditText)v).getSelectionStart();
+			for (Hyperlink link : listOfLinks) {
+				if (cursorPosition > link.start && cursorPosition < link.end) {
+					mTextLinkClickListener.onTextLinkClick(v, link.textSpan.toString());
+				}
+			}
+		}		
 	}
 
 	// The Method mainly performs the Regex Comparison for the Pattern and adds
@@ -104,14 +119,16 @@ public class LinkEnabledEditText extends EditText {
 	}
 	
 	
-	@Override
-	protected void onTextChanged(CharSequence text, int start,
-			int lengthBefore, int lengthAfter) {
-		super.onTextChanged(text, start, lengthBefore, lengthAfter);
-		if (getLinksHighlighted()) {
-			gatherLinksForText(text.toString());
-		}
-	}
+//	@Override
+//	protected void onTextChanged(CharSequence text, int start,
+//			int lengthBefore, int lengthAfter) {
+//		super.onTextChanged(text, start, lengthBefore, lengthAfter);
+//		if (getLinksHighlighted()) {
+//			gatherLinksForText(text.toString());
+//		}
+//	}
+	
+	
 	
 
 	public boolean getLinksHighlighted() {
@@ -136,7 +153,7 @@ public class LinkEnabledEditText extends EditText {
 
 		@Override
 		public void onClick(View textView) {
-			mListener.onTextLinkClick(textView, clickedSpan);
+			mTextLinkClickListener.onTextLinkClick(textView, clickedSpan);
 		}
 	}
 
